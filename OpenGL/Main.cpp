@@ -54,26 +54,56 @@ bool inicio() {
 
 
 bool cargar() {
+
+	
 	bool suceso = true;
-	ImagenCargada = SDL_LoadBMP("img/T .T.bmp");
-	if (ImagenCargada == NULL)
+
+	gTeclaCambioSuperficie[Tecla_Cambio_Default] = cargaSuperficie("img/T .T.bmp");
+	if (gTeclaCambioSuperficie[Tecla_Cambio_Default] == NULL)
 	{
-		printf("No se puede cargar la imagen BMP: %s\n de la carpeta img/T .T.bmp", SDL_GetError());
+		printf("No se puede cargar la Default!!\n");
+		suceso = false;
+	}
+
+	gTeclaCambioSuperficie[Tecla_Cambio_Izquierda] = cargaSuperficie("img/left.bmp");
+	if (gTeclaCambioSuperficie[Tecla_Cambio_Izquierda] == NULL)
+	{
+		printf("No se puede cargar la Izquierda!!\n");
+		suceso = false;
+	}
+
+	gTeclaCambioSuperficie[Tecla_Cambio_Derecha] = cargaSuperficie("img/right.bmp");
+	if (gTeclaCambioSuperficie[Tecla_Cambio_Derecha] == NULL)
+	{
+		printf("No se puede cargar la Derecha!!\n");
 		suceso = false;
 	}
 	return suceso;
 }
 
+
 void cerrar() {
-	SDL_FreeSurface(ImagenCargada);
-	ImagenCargada = NULL;
+	for (int i = 0; i < Tecla_Cambio_Total; i++)
+	{
+		SDL_FreeSurface(gTeclaCambioSuperficie[i]);
+		gTeclaCambioSuperficie[i] = NULL;
+	}
 
 	SDL_DestroyWindow(ventana);
 	ventana = NULL;
 
-	pantallaSuperficie = NULL;
-
 	SDL_Quit();
+}
+
+
+SDL_Surface* cargaSuperficie(string path) {
+	SDL_Surface* superficieCargada = SDL_LoadBMP(path.c_str());
+	if (superficieCargada == NULL)
+	{
+		printf("Imposible cargar la imagen %s! SDL ERROR: %s\n", 
+			path.c_str(), SDL_GetError());
+	}
+	return superficieCargada;
 }
 
 
@@ -91,10 +121,40 @@ int main(int arg, char** argv) {
 		}
 		else
 		{
-			SDL_BlitSurface(ImagenCargada, NULL, pantallaSuperficie, NULL);
-			SDL_UpdateWindowSurface(ventana);
 
-			SDL_Delay(5000);
+			bool salir = false;
+			SDL_Event e;
+			SuperficieActual = gTeclaCambioSuperficie[Tecla_Cambio_Default];
+
+			while (!salir)
+			{
+				while (SDL_PollEvent(&e) != 0)
+				{
+					if (e.type == SDL_QUIT)
+					{
+						salir = true;
+					}
+					else if (e.type == SDL_KEYDOWN)
+					{
+						switch (e.key.keysym.sym)
+						{
+							case SDLK_LEFT:
+								SuperficieActual = gTeclaCambioSuperficie[Tecla_Cambio_Izquierda];
+								break;
+
+							case SDLK_RIGHT:
+								SuperficieActual = gTeclaCambioSuperficie[Tecla_Cambio_Derecha];
+								break;
+
+							default:
+								SuperficieActual = gTeclaCambioSuperficie[Tecla_Cambio_Default];
+								break;
+						}
+						SDL_BlitSurface(SuperficieActual, NULL, pantallaSuperficie,NULL);
+						SDL_UpdateWindowSurface(ventana);
+					}
+				}
+			}
 		}
 	}
 
