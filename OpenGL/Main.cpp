@@ -9,20 +9,10 @@ const int Ancho_Pantalla = 640;
 const int Largo_Pantalla = 480;
 
 
-enum TeclaCambioSuperficie
-{
-	Tecla_Cambio_Default,
-
-	Tecla_Cambio_Izquierda,
-	Tecla_Cambio_Derecha,
-	Tecla_Cambio_Total
-};
-
-
 SDL_Window* ventana = NULL;
 SDL_Surface* pantallaSuperficie = NULL;
+SDL_Surface* SuperficieAjustada = NULL;
 SDL_Surface* ImagenCargada = NULL;
-SDL_Surface* gTeclaCambioSuperficie[Tecla_Cambio_Total];
 SDL_Surface* SuperficieActual = NULL;
 SDL_Surface* cargaSuperficie (string path);
 
@@ -37,8 +27,8 @@ bool inicio() {
 
 	else
 	{
-		ventana = SDL_CreateWindow("SDL IMAGEN BMP", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, Ancho_Pantalla, Largo_Pantalla
-			, SDL_WINDOW_OPENGL);
+		ventana = SDL_CreateWindow("SDL Ajuste Imagen", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, Ancho_Pantalla, Largo_Pantalla
+			, SDL_WINDOW_SHOWN);
 		if (ventana == NULL)
 		{
 			printf("La ventana no puede ser creada: %s\n", SDL_GetError());
@@ -58,50 +48,50 @@ bool cargar() {
 	
 	bool suceso = true;
 
-	gTeclaCambioSuperficie[Tecla_Cambio_Default] = cargaSuperficie("img/T .T.bmp");
-	if (gTeclaCambioSuperficie[Tecla_Cambio_Default] == NULL)
+	SuperficieAjustada = cargaSuperficie("img/right.bmp");
+	
+	if (SuperficieAjustada == NULL)
 	{
-		printf("No se puede cargar la Default!!\n");
+		printf("Es imposible cargar la imgane hagalo bien");
 		suceso = false;
 	}
 
-	gTeclaCambioSuperficie[Tecla_Cambio_Izquierda] = cargaSuperficie("img/left.bmp");
-	if (gTeclaCambioSuperficie[Tecla_Cambio_Izquierda] == NULL)
-	{
-		printf("No se puede cargar la Izquierda!!\n");
-		suceso = false;
-	}
-
-	gTeclaCambioSuperficie[Tecla_Cambio_Derecha] = cargaSuperficie("img/right.bmp");
-	if (gTeclaCambioSuperficie[Tecla_Cambio_Derecha] == NULL)
-	{
-		printf("No se puede cargar la Derecha!!\n");
-		suceso = false;
-	}
 	return suceso;
 }
 
 
 void cerrar() {
-	for (int i = 0; i < Tecla_Cambio_Total; i++)
-	{
-		SDL_FreeSurface(gTeclaCambioSuperficie[i]);
-		gTeclaCambioSuperficie[i] = NULL;
-	}
+	SDL_FreeSurface(SuperficieAjustada);
+	SuperficieAjustada = NULL;	
 
 	SDL_DestroyWindow(ventana);
 	ventana = NULL;
+	SuperficieAjustada = NULL;	
 
 	SDL_Quit();
 }
 
 
 SDL_Surface* cargaSuperficie(string path) {
+	
+	SDL_Surface* superficieOptimizada = NULL;
 	SDL_Surface* superficieCargada = SDL_LoadBMP(path.c_str());
 	if (superficieCargada == NULL)
 	{
 		printf("Imposible cargar la imagen %s! SDL ERROR: %s\n", 
 			path.c_str(), SDL_GetError());
+	}
+	else
+	{
+		superficieOptimizada = SDL_ConvertSurface(superficieCargada,
+							   pantallaSuperficie->format,0);
+	
+		if (superficieOptimizada==NULL)
+		{
+			printf("Imposible cargar la imagen %s! SDL ERROR: %s\n",
+				path.c_str(), SDL_GetError());
+		}
+		SDL_FreeSurface(superficieOptimizada);
 	}
 	return superficieCargada;
 }
@@ -118,13 +108,12 @@ int main(int arg, char** argv) {
 		if (!cargar())
 		{
 			printf("Fallo al cargar la imagen!!\n");
-		}
+	i9o0	}
 		else
 		{
 
 			bool salir = false;
 			SDL_Event e;
-			SuperficieActual = gTeclaCambioSuperficie[Tecla_Cambio_Default];
 
 			while (!salir)
 			{
@@ -134,26 +123,17 @@ int main(int arg, char** argv) {
 					{
 						salir = true;
 					}
-					else if (e.type == SDL_KEYDOWN)
-					{
-						switch (e.key.keysym.sym)
-						{
-							case SDLK_LEFT:
-								SuperficieActual = gTeclaCambioSuperficie[Tecla_Cambio_Izquierda];
-								break;
-
-							case SDLK_RIGHT:
-								SuperficieActual = gTeclaCambioSuperficie[Tecla_Cambio_Derecha];
-								break;
-
-							default:
-								SuperficieActual = gTeclaCambioSuperficie[Tecla_Cambio_Default];
-								break;
-						}
-						SDL_BlitSurface(SuperficieActual, NULL, pantallaSuperficie,NULL);
-						SDL_UpdateWindowSurface(ventana);
-					}
 				}
+					SDL_Rect rectaAjustada;
+					rectaAjustada.x = 0;
+					rectaAjustada.y = 0;
+					rectaAjustada.w = Ancho_Pantalla;
+					rectaAjustada.h = Largo_Pantalla;
+
+					SDL_BlitScaled(SuperficieAjustada,NULL, 
+									pantallaSuperficie, &rectaAjustada);
+					SDL_UpdateWindowSurface(ventana);
+			
 			}
 		}
 	}
