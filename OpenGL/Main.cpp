@@ -16,7 +16,8 @@ public:
 	~LTextura();
 	bool cargaArchivo(string path);
 	void liberar();
-	void render(int x, int y);
+	void asignacolor(Uint8 rojo, Uint8 verde, Uint8 azul);
+	void render(int x, int y, SDL_Rect* clip = NULL);
 	int obtenerAncho();
 	int obtenerAlto();
 private:
@@ -30,8 +31,10 @@ bool cargar();
 void cerrar();
 SDL_Window* ventana = NULL;
 SDL_Renderer* gRenderizado = NULL;
-LTextura gImagenTextura;
-LTextura gFondoTextura;
+
+LTextura gModularTextura;
+//LTextura gImagenTextura;
+//LTextura gFondoTextura;
 
 LTextura::LTextura() {
 	mTextura = NULL;
@@ -86,8 +89,18 @@ void LTextura::liberar() {
 }
 
 
-void LTextura::render(int x, int y) {
+void LTextura::asignacolor(Uint8 rojo, Uint8 verde, Uint8 azul) {
+	SDL_SetTextureColorMod(mTextura,rojo,verde,azul);
+}
+
+
+void LTextura::render(int x, int y, SDL_Rect* clip) {
 	SDL_Rect renderCuadrado = { x,y,mAncho,mAlto };
+	if (clip != NULL)
+	{
+		renderCuadrado.w = clip->w;
+			renderCuadrado.h = clip->h;
+	}
 	SDL_RenderCopy(gRenderizado, mTextura, NULL, &renderCuadrado);
 }
 
@@ -134,6 +147,7 @@ bool inicio() {
 			}
 			else
 			{
+				SDL_SetRenderDrawColor(gRenderizado,0xFF, 0xFF, 0xFF, 0xFF);
 				int imagenBandera = IMG_INIT_PNG;
 
 				if (!(IMG_Init(imagenBandera) & imagenBandera))
@@ -154,13 +168,8 @@ bool cargar() {
 
 	bool suceso = true;
 
-	if (!gFondoTextura.cargaArchivo("img/fondo.png"))
-	{
-		printf("Es imposible cargar la imgane hagalo bien");
-		suceso = false;
-	}
-
-	if (!gImagenTextura.cargaArchivo("img/mono.png"))
+	
+	if (!gModularTextura.cargaArchivo("img/colors.png"))
 	{
 		printf("Es imposible cargar la imgane hagalo bien");
 		suceso = false;
@@ -172,16 +181,12 @@ bool cargar() {
 
 void cerrar() {
 
-	//SDL_DestroyTexture(gTexura);
-	//SDL_DestroyRenderer(gRenderizado);
-	gImagenTextura.liberar();
-	gFondoTextura.liberar();
+	gModularTextura.liberar();
 	SDL_DestroyRenderer(gRenderizado);
 	SDL_DestroyWindow(ventana);
 
 	ventana = NULL;
 	gRenderizado = NULL;
-	//gTexura = NULL;
 
 	IMG_Quit();
 	SDL_Quit();
@@ -204,63 +209,50 @@ int main(int arg, char** argv) {
 
 			bool salir = false;
 			SDL_Event e;
+			Uint8 r = 255;
+			Uint8 g = 255;
+			Uint8 b = 255;
 
 			while (!salir)
 			{
 				while (SDL_PollEvent(&e) != 0)
 				{
-					if (e.type == SDL_QUIT || e.type == SDL_KEYDOWN)
+					if (e.type == SDL_QUIT)
+					{
+						salir = true;
+					}
+					else if(e.type == SDL_KEYDOWN)
 					{
 						switch (e.key.keysym.sym)
 						{
-						case SDLK_ESCAPE:
-							salir = true;
+						case SDLK_q:
+							r += 32;
 							break;
-
-						default:
-							salir = true;
+						case SDLK_w:
+							g += 32;
+							break;
+						case SDLK_e:
+							b += 32;
+							break;
+						case SDLK_a:
+							r += 32;
+							break;
+						case SDLK_s:
+							g += 32;
+							break;
+						case SDLK_d:
+							b += 32;
 							break;
 						}
 					}
+					
 				}
 
+				SDL_SetRenderDrawColor(gRenderizado, 0xFF, 0xFF, 0xFF, 0xFF);
 				SDL_RenderClear(gRenderizado);
 
-				gFondoTextura.render(0, 0);
-
-				gImagenTextura.render(320, 240);
-				gImagenTextura.render(450, 240);
-				gImagenTextura.render(220, 240);
-
-
-
-				SDL_Rect llenarRectangulo = { 0,Largo_Pantalla - 50,Ancho_Pantalla,Largo_Pantalla };
-
-				SDL_SetRenderDrawColor(gRenderizado, 255, 0, 0, 0xFF);
-				SDL_RenderFillRect(gRenderizado, &llenarRectangulo);
-
-
-				SDL_Rect controlRectangulo = { Ancho_Pantalla / 6,Largo_Pantalla / 6,Ancho_Pantalla * 2 / 3,Largo_Pantalla * 2 / 3 };
-				SDL_SetRenderDrawColor(gRenderizado, 0xFF, 0xFF, 0xFF, 0xFF);
-
-				SDL_SetRenderDrawColor(gRenderizado, 0xFF, 0xFF, 0xFF, 0xFF);
-				SDL_RenderDrawRect(gRenderizado, &controlRectangulo);
-
-				SDL_SetRenderDrawColor(gRenderizado, 0xFF, 0xFF, 0xFF, 0xFF);
-				SDL_RenderDrawLine(gRenderizado, 0, Largo_Pantalla / 2, Ancho_Pantalla, Largo_Pantalla / 2);
-
-				SDL_SetRenderDrawColor(gRenderizado, 0xFF, 0xFF, 0xFF, 0xFF);
-				SDL_RenderDrawLine(gRenderizado, 0, 0, Ancho_Pantalla, Largo_Pantalla);
-
-				SDL_SetRenderDrawColor(gRenderizado, 0xFF, 0xFF, 0xFF, 0xFF);
-				SDL_RenderDrawLine(gRenderizado, 0, Largo_Pantalla, Ancho_Pantalla, 0);
-
-
-
-				for (int i = 0; i < Largo_Pantalla; i += 4)
-				{
-					SDL_RenderDrawPoint(gRenderizado, Ancho_Pantalla / 2, i);
-				}
+				gModularTextura.asignacolor(r,g,b);
+				gModularTextura.render(0, 0);
 
 				SDL_RenderPresent(gRenderizado);
 			}
