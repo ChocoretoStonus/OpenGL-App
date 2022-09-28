@@ -17,6 +17,8 @@ public:
 	bool cargaArchivo(string path);
 	void liberar();
 	void asignacolor(Uint8 rojo, Uint8 verde, Uint8 azul);
+	void asignaModoBlend(SDL_BlendMode mezcla);
+	void asignaAlpha(Uint8 alpha);
 	void render(int x, int y, SDL_Rect* clip = NULL);
 	int obtenerAncho();
 	int obtenerAlto();
@@ -34,7 +36,7 @@ SDL_Renderer* gRenderizado = NULL;
 
 LTextura gModularTextura;
 //LTextura gImagenTextura;
-//LTextura gFondoTextura;
+LTextura gFondoTextura;
 
 LTextura::LTextura() {
 	mTextura = NULL;
@@ -109,6 +111,13 @@ int LTextura::obtenerAncho() {
 	return mAncho;
 }
 
+void LTextura::asignaModoBlend(SDL_BlendMode mezcla) {
+	SDL_SetTextureBlendMode(mTextura,mezcla);
+}
+
+void LTextura::asignaAlpha(Uint8 alpha) {
+	SDL_SetTextureAlphaMod(mTextura, alpha);
+}
 
 int LTextura::obtenerAlto() {
 	return mAlto;
@@ -174,6 +183,11 @@ bool cargar() {
 		printf("Es imposible cargar la imgane hagalo bien");
 		suceso = false;
 	}
+	if (!gFondoTextura.cargaArchivo("img/uwu.png"))
+	{
+		printf("Es imposible cargar la imgane hagalo bien");
+		suceso = false;
+	}
 
 	return suceso;
 }
@@ -212,6 +226,7 @@ int main(int arg, char** argv) {
 			Uint8 r = 255;
 			Uint8 g = 255;
 			Uint8 b = 255;
+			Uint8 alpha = 255;
 
 			while (!salir)
 			{
@@ -223,35 +238,41 @@ int main(int arg, char** argv) {
 					}
 					else if(e.type == SDL_KEYDOWN)
 					{
+						
+
 						switch (e.key.keysym.sym)
 						{
-						case SDLK_q:
-							r += 32;
-							break;
-						case SDLK_w:
-							g += 32;
-							break;
-						case SDLK_e:
-							b += 32;
-							break;
 						case SDLK_a:
-							r += 32;
+							if (alpha + 32 > 255)
+							{
+								alpha = 255;
+							}
+							else
+							{
+								alpha += 32;
+							}
 							break;
 						case SDLK_s:
-							g += 32;
-							break;
-						case SDLK_d:
-							b += 32;
+							if (alpha - 32 < 0)
+							{
+								alpha = 0;
+							}
+							else
+							{
+								alpha -= 32;
+							}
 							break;
 						}
 					}
 					
 				}
 
-				SDL_SetRenderDrawColor(gRenderizado, 0xFF, 0xFF, 0xFF, 0xFF);
+				//SDL_SetRenderDrawColor(gRenderizado, 0xFF, 0xFF, 0xFF, 0xFF);
 				SDL_RenderClear(gRenderizado);
 
-				gModularTextura.asignacolor(r,g,b);
+				//gModularTextura.asignacolor(r,g,b);
+				gFondoTextura.render(0,0);
+				gModularTextura.asignaAlpha(alpha);
 				gModularTextura.render(0, 0);
 
 				SDL_RenderPresent(gRenderizado);
