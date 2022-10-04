@@ -35,8 +35,12 @@ SDL_Window* ventana = NULL;
 SDL_Renderer* gRenderizado = NULL;
 
 LTextura gModularTextura;
-//LTextura gImagenTextura;
 LTextura gFondoTextura;
+//LTextura gImagenTextura;
+
+const int FRAMES_ANIMATION_CAMINAR = 4;
+SDL_Rect gSpriteClips[FRAMES_ANIMATION_CAMINAR];
+LTextura gSpriteTextura;
 
 LTextura::LTextura() {
 	mTextura = NULL;
@@ -103,7 +107,7 @@ void LTextura::render(int x, int y, SDL_Rect* clip) {
 		renderCuadrado.w = clip->w;
 			renderCuadrado.h = clip->h;
 	}
-	SDL_RenderCopy(gRenderizado, mTextura, NULL, &renderCuadrado);
+	SDL_RenderCopy(gRenderizado, mTextura, clip, &renderCuadrado);
 }
 
 
@@ -148,7 +152,7 @@ bool inicio() {
 		}
 		else
 		{
-			gRenderizado = SDL_CreateRenderer(ventana, -1, SDL_RENDERER_ACCELERATED);
+			gRenderizado = SDL_CreateRenderer(ventana, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 			if (gRenderizado == NULL)
 			{
 				printf("El renderizado no puede ser creado, SDL ERROR: %s\n", SDL_GetError());
@@ -178,15 +182,32 @@ bool cargar() {
 	bool suceso = true;
 
 	
-	if (!gModularTextura.cargaArchivo("img/colors.png"))
+	if (!gSpriteTextura.cargaArchivo("img/caminar.png"))
 	{
-		printf("Es imposible cargar la imgane hagalo bien");
+		printf("Es imposible cargar la imagen hagalo bien");
 		suceso = false;
 	}
-	if (!gFondoTextura.cargaArchivo("img/uwu.png"))
+	else
 	{
-		printf("Es imposible cargar la imgane hagalo bien");
-		suceso = false;
+		gSpriteClips[0].x = 0;
+		gSpriteClips[0].y = 0;
+		gSpriteClips[0].w = 64;
+		gSpriteClips[0].h = 205;
+
+		gSpriteClips[1].x = 64;
+		gSpriteClips[1].y = 0;
+		gSpriteClips[1].w = 64;
+		gSpriteClips[1].h = 205;
+
+		gSpriteClips[2].x = 128;
+		gSpriteClips[2].y = 0;
+		gSpriteClips[2].w = 64;
+		gSpriteClips[2].h = 205;
+
+		gSpriteClips[3].x = 196;
+		gSpriteClips[3].y = 0;
+		gSpriteClips[3].w = 64;
+		gSpriteClips[3].h = 205;
 	}
 
 	return suceso;
@@ -196,6 +217,7 @@ bool cargar() {
 void cerrar() {
 
 	gModularTextura.liberar();
+	gSpriteTextura.liberar();
 	SDL_DestroyRenderer(gRenderizado);
 	SDL_DestroyWindow(ventana);
 
@@ -223,10 +245,7 @@ int main(int arg, char** argv) {
 
 			bool salir = false;
 			SDL_Event e;
-			Uint8 r = 255;
-			Uint8 g = 255;
-			Uint8 b = 255;
-			Uint8 alpha = 255;
+			int frame = 0;
 
 			while (!salir)
 			{
@@ -236,46 +255,25 @@ int main(int arg, char** argv) {
 					{
 						salir = true;
 					}
-					else if(e.type == SDL_KEYDOWN)
-					{
-						
-
-						switch (e.key.keysym.sym)
-						{
-						case SDLK_a:
-							if (alpha + 32 > 255)
-							{
-								alpha = 255;
-							}
-							else
-							{
-								alpha += 32;
-							}
-							break;
-						case SDLK_s:
-							if (alpha - 32 < 0)
-							{
-								alpha = 0;
-							}
-							else
-							{
-								alpha -= 32;
-							}
-							break;
-						}
-					}
 					
 				}
 
-				//SDL_SetRenderDrawColor(gRenderizado, 0xFF, 0xFF, 0xFF, 0xFF);
+				SDL_SetRenderDrawColor(gRenderizado, 0xFF, 0, 0xFF, 0xFF);
 				SDL_RenderClear(gRenderizado);
-
-				//gModularTextura.asignacolor(r,g,b);
-				gFondoTextura.render(0,0);
-				gModularTextura.asignaAlpha(alpha);
-				gModularTextura.render(0, 0);
+				
+				SDL_Rect* actualClip = &gSpriteClips[frame/9];
+				gSpriteTextura.render((Ancho_Pantalla - actualClip ->w)/2,
+					(Largo_Pantalla-actualClip ->h)/2,actualClip);
 
 				SDL_RenderPresent(gRenderizado);
+				
+				//printf("no: ", frame, "\n");
+				frame++;
+				if (frame/9 >=FRAMES_ANIMATION_CAMINAR)
+				{
+					frame = 0;
+				}
+
 			}
 		}
 	}
