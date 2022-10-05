@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <sdl/SDL.h>
 #include <sdl/SDL_image.h>
+#include <sdl/SDL_ttf.h>
 #include <string>
 
 
@@ -8,17 +9,14 @@ using namespace std;
 
 const int Ancho_Pantalla = 640;
 const int Largo_Pantalla = 480;
-SDL_Surface* gTeclaCambioSuperficie;
 
 class LTextura {
 public:
 	LTextura();
 	~LTextura();
 	bool cargaArchivo(string path);
+	bool cargarRenderTexto(string texturaTexto, SDL_Color textoColor);
 	void liberar();
-	void asignacolor(Uint8 rojo, Uint8 verde, Uint8 azul);
-	void asignaModoBlend(SDL_BlendMode mezcla);
-	void asignaAlpha(Uint8 alpha);
 	void render(int x, int y, SDL_Rect* clip = NULL);
 	int obtenerAncho();
 	int obtenerAlto();
@@ -31,16 +29,14 @@ private:
 bool inicio();
 bool cargar();
 void cerrar();
+
+SDL_Surface* gTeclaCambioSuperficie;
 SDL_Window* ventana = NULL;
 SDL_Renderer* gRenderizado = NULL;
-
-LTextura gModularTextura;
+TTF_Font* gFuente = NULL;
+LTextura gTextoTextura;
 LTextura gFondoTextura;
-//LTextura gImagenTextura;
 
-const int FRAMES_ANIMATION_CAMINAR = 4;
-SDL_Rect gSpriteClips[FRAMES_ANIMATION_CAMINAR];
-LTextura gSpriteTextura;
 
 LTextura::LTextura() {
 	mTextura = NULL;
@@ -84,6 +80,32 @@ bool LTextura::cargaArchivo(string path) {
 }
 
 
+bool LTextura::cargarRenderTexto(string texturaTexto, SDL_Color textoColor) {
+	liberar();
+	SDL_Surface* textoSurficie = TTF_RenderText_Solid(gFuente,texturaTexto.c_str(),textoColor);
+	if (textoSurficie ==NULL)
+	{
+		printf("No se pudo cargar la fuente");
+	}
+	else
+	{
+		mTextura = SDL_CreateTextureFromSurface(gRenderizado,textoSurficie);
+		if (mTextura==NULL)
+		{
+			printf("No se pudo crear la textura");
+		}
+		else
+		{
+			mAncho = textoSurficie->w;
+			mAlto = textoSurficie->h;
+		}
+		SDL_FreeSurface(textoSurficie);
+	}
+
+	return mTextura != NULL;
+}
+
+
 void LTextura::liberar() {
 	if (mTextura != NULL)
 	{
@@ -92,11 +114,6 @@ void LTextura::liberar() {
 		mAncho = 0;
 		mAlto = 0;
 	}
-}
-
-
-void LTextura::asignacolor(Uint8 rojo, Uint8 verde, Uint8 azul) {
-	SDL_SetTextureColorMod(mTextura,rojo,verde,azul);
 }
 
 
@@ -115,13 +132,6 @@ int LTextura::obtenerAncho() {
 	return mAncho;
 }
 
-void LTextura::asignaModoBlend(SDL_BlendMode mezcla) {
-	SDL_SetTextureBlendMode(mTextura,mezcla);
-}
-
-void LTextura::asignaAlpha(Uint8 alpha) {
-	SDL_SetTextureAlphaMod(mTextura, alpha);
-}
 
 int LTextura::obtenerAlto() {
 	return mAlto;
@@ -169,6 +179,11 @@ bool inicio() {
 						IMG_GetError());
 					suceso = false;
 				}
+				if (TTF_Init() ==-1)
+				{
+					suceso = false;
+					printf("no jalo el ttf");
+				}
 			}
 		}
 		return suceso;
@@ -181,49 +196,39 @@ bool cargar() {
 
 	bool suceso = true;
 
-	
-	if (!gSpriteTextura.cargaArchivo("img/caminar.png"))
+	gFuente = TTF_OpenFont("fonts/ComicSans.TTF",21);
+	if (gFuente == NULL)
 	{
-		printf("Es imposible cargar la imagen hagalo bien");
+		printf("Es imposible cargar la fuente mi capo");
 		suceso = false;
 	}
 	else
 	{
-		gSpriteClips[0].x = 0;
-		gSpriteClips[0].y = 0;
-		gSpriteClips[0].w = 64;
-		gSpriteClips[0].h = 205;
 
-		gSpriteClips[1].x = 64;
-		gSpriteClips[1].y = 0;
-		gSpriteClips[1].w = 64;
-		gSpriteClips[1].h = 205;
+		SDL_Color textoColor = {0,0,0};
+		if (!gTextoTextura.cargarRenderTexto("Uso de Comics Sans", textoColor))
+		{
+			printf("Tu texto no sirve pon otro");
+			suceso = false;
+		}
 
-		gSpriteClips[2].x = 128;
-		gSpriteClips[2].y = 0;
-		gSpriteClips[2].w = 64;
-		gSpriteClips[2].h = 205;
-
-		gSpriteClips[3].x = 196;
-		gSpriteClips[3].y = 0;
-		gSpriteClips[3].w = 64;
-		gSpriteClips[3].h = 205;
+		return suceso;
 	}
 
-	return suceso;
 }
 
 
 void cerrar() {
 
-	gModularTextura.liberar();
-	gSpriteTextura.liberar();
+	gTextoTextura.liberar();
+	TTF_CloseFont(gFuente);
+	gFuente = NULL;
 	SDL_DestroyRenderer(gRenderizado);
 	SDL_DestroyWindow(ventana);
 
 	ventana = NULL;
 	gRenderizado = NULL;
-
+	TTF_Quit();
 	IMG_Quit();
 	SDL_Quit();
 }
@@ -260,20 +265,10 @@ int main(int arg, char** argv) {
 
 				SDL_SetRenderDrawColor(gRenderizado, 0xFF, 0, 0xFF, 0xFF);
 				SDL_RenderClear(gRenderizado);
-				
-				SDL_Rect* actualClip = &gSpriteClips[frame/9];
-				gSpriteTextura.render((Ancho_Pantalla - actualClip ->w)/2,
-					(Largo_Pantalla-actualClip ->h)/2,actualClip);
-
+				gTextoTextura.render((Ancho_Pantalla - gTextoTextura.obtenerAncho())/2, 
+									(Largo_Pantalla - gTextoTextura.obtenerAlto()) / 2);
 				SDL_RenderPresent(gRenderizado);
 				
-				//printf("no: ", frame, "\n");
-				frame++;
-				if (frame/9 >=FRAMES_ANIMATION_CAMINAR)
-				{
-					frame = 0;
-				}
-
 			}
 		}
 	}
