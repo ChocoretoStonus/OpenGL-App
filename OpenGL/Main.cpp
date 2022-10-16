@@ -280,7 +280,7 @@ bool cargar() {
 		gBotones[0].asignaPosicion(0,0);
 		gBotones[1].asignaPosicion(Ancho_Pantalla-Boton_Ancho,0);
 		gBotones[2].asignaPosicion(0,Largo_Pantalla-Boton_Largo);
-		gBotones[3].asignaPosicion(Ancho_Pantalla - Boton_Ancho, 
+		gBotones[3].asignaPosicion(Ancho_Pantalla - Boton_Ancho,
 								   Largo_Pantalla - Boton_Largo);
 
 	}
@@ -331,19 +331,19 @@ int main(int arg, char** argv) {
 					{
 						gBotones[i].controlaEvento(&e);
 					}
-					
+
 				}
 
 				SDL_SetRenderDrawColor(gRenderizado, 0xFF, 0, 0xFF, 0xFF);
 				SDL_RenderClear(gRenderizado);
-				
+
 				for (int i = 0; i < Total_Botones; ++i)
 				{
 					gBotones[i].render();
 				}
 
 				SDL_RenderPresent(gRenderizado);
-				
+
 			}
 		}
 	}
