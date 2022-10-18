@@ -43,6 +43,9 @@ LTextura gDerechaTextura;
 LTextura gFondoTextura;
 
 
+#pragma region
+
+
 LTextura::LTextura() {
 	mTextura = NULL;
 	mAncho = 0;
@@ -118,6 +121,7 @@ int LTextura::obtenerAlto() {
 
 
 
+#pragma endregion 
 
 
 bool inicio() {
@@ -126,7 +130,7 @@ bool inicio() {
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
 		printf("SDL no puede inicializarse: %s\n", SDL_GetError());
 	}
-
+	
 	else
 	{
 
@@ -168,8 +172,8 @@ bool inicio() {
 				}
 			}
 		}
-		return suceso;
 	}
+		return suceso;
 }
 
 
