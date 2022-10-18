@@ -123,7 +123,6 @@ int LTextura::obtenerAlto() {
 
 #pragma endregion 
 
-
 bool inicio() {
 	bool suceso = true;
 
