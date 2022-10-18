@@ -10,19 +10,6 @@ using namespace std;
 const int Ancho_Pantalla = 640;
 const int Largo_Pantalla = 480;
 
-const int Boton_Ancho = 300;
-const int Boton_Largo = 200;
-const int Total_Botones = 4;
-
-enum  LBotonSprite
-{
-	BOTON_SPRITE_MOUSE_SALIDA = 0,
-	BOTON_SPRITE_MOUSE_SOBRE_MOVIMIENTO = 1,
-	BOTON_SPRITE_MOUSE_ABAJO = 2,
-	BOTON_SPRITE_MOUSE_ARRIBA = 3,
-	BOTON_SPRITE_TOTAL = 4
-};
-
 class LTextura {
 public:
 	LTextura();
@@ -38,19 +25,6 @@ private:
 	int mAlto;
 };
 
-class LBoton
-{
-public:
-	LBoton();
-	void asignaPosicion(int x, int y);
-	void controlaEvento(SDL_Event* e);
-	void render();
-private:
-	SDL_Point mPosicion;
-	LBotonSprite mActualSprite;
-};
-
-
 bool inicio();
 bool cargar();
 void cerrar();
@@ -59,9 +33,13 @@ SDL_Surface* gTeclaCambioSuperficie;
 SDL_Window* ventana = NULL;
 SDL_Renderer* gRenderizado = NULL;
 LTextura gBotonSpriteTextura;
-SDL_Rect gSpriteClips[BOTON_SPRITE_TOTAL];
 
-LBoton gBotones[Total_Botones];
+LTextura gPresionaTextura;
+LTextura gArribaTextura;
+LTextura gAbajoTextura;
+LTextura gIzquierdaTextura;
+LTextura gDerechaTextura;
+
 LTextura gFondoTextura;
 
 
@@ -139,69 +117,7 @@ int LTextura::obtenerAlto() {
 }
 
 
-LBoton::LBoton()
-{
-	mPosicion.x = 0;
-	mPosicion.y = 0;
-	mActualSprite = BOTON_SPRITE_MOUSE_SALIDA;
-}
 
-
-void LBoton::asignaPosicion(int x, int y)
-{
-	mPosicion.x = x;
-	mPosicion.y = y;
-}
-
-
-void LBoton::controlaEvento(SDL_Event* e) {
-	if (e->type == SDL_MOUSEMOTION || e->type == SDL_MOUSEBUTTONDOWN || e->type == SDL_MOUSEBUTTONUP)
-	{
-		int x, y;
-		SDL_GetMouseState(&x,&y);
-		bool dentro = true;
-		if (x <mPosicion.x)
-		{
-			dentro = true;
-		}
-		else if(x>mPosicion.x)
-		{
-			dentro = false;
-		}
-		else if (y < mPosicion.y)
-		{
-			dentro = false;
-		}
-		else if (y > mPosicion.y + Boton_Largo)
-		{
-			dentro = false;
-		}
-		if (!dentro)
-		{
-			mActualSprite = BOTON_SPRITE_MOUSE_SALIDA;
-		}
-	}
-	else
-	{
-		switch (e->type)
-		{
-		case SDL_MOUSEMOTION:
-			mActualSprite = BOTON_SPRITE_MOUSE_SOBRE_MOVIMIENTO;
-			break;
-		case SDL_MOUSEBUTTONDOWN:
-			mActualSprite = BOTON_SPRITE_MOUSE_ABAJO;
-			break;
-		case SDL_MOUSEBUTTONUP:
-			mActualSprite = BOTON_SPRITE_MOUSE_ARRIBA;
-			break;
-		}
-	}
-}
-
-
-void LBoton::render() {
-	gBotonSpriteTextura.render(mPosicion.x,mPosicion.y,&gSpriteClips[mActualSprite]);
-}
 
 
 bool inicio() {
@@ -262,27 +178,34 @@ bool cargar() {
 
 	bool suceso = true;
 
-	if (!gBotonSpriteTextura.cargaArchivo("img/boton.png"))
+	if (!gArribaTextura.cargaArchivo("img/events/boton_arriba.png"))
 	{
 		printf("Es imposible cargar la img mi capo");
 		suceso = false;
 	}
-	else
+	
+	if (!gPresionaTextura.cargaArchivo("img/events/boton_presiona.png"))
 	{
+		printf("Es imposible cargar la img mi capo");
+		suceso = false;
+	}
 
-		for (int i = 0; i < BOTON_SPRITE_TOTAL; ++i)
-		{
-			gSpriteClips[i].x = 0;
-			gSpriteClips[i].y = i * 200;
-			gSpriteClips[i].w = Boton_Ancho;
-			gSpriteClips[i].h = Boton_Largo;
-		}
-		gBotones[0].asignaPosicion(0,0);
-		gBotones[1].asignaPosicion(Ancho_Pantalla-Boton_Ancho,0);
-		gBotones[2].asignaPosicion(0,Largo_Pantalla-Boton_Largo);
-		gBotones[3].asignaPosicion(Ancho_Pantalla - Boton_Ancho,
-								   Largo_Pantalla - Boton_Largo);
+	if (!gAbajoTextura.cargaArchivo("img/events/boton_abajo.png"))
+	{
+		printf("Es imposible cargar la img mi capo");
+		suceso = false;
+	}
+	
+	if (!gIzquierdaTextura.cargaArchivo("img/events/boton_izquierda.png"))
+	{
+		printf("Es imposible cargar la img mi capo");
+		suceso = false;
+	}
 
+	if (!gDerechaTextura.cargaArchivo("img/events/boton_derecha.png"))
+	{
+		printf("Es imposible cargar la img mi capo");
+		suceso = false;
 	}
 		return suceso;
 
@@ -291,6 +214,11 @@ bool cargar() {
 
 void cerrar() {
 	gBotonSpriteTextura.liberar();
+	gArribaTextura.liberar();
+	gDerechaTextura.liberar();
+	gIzquierdaTextura.liberar();
+	gAbajoTextura.liberar();
+	gPresionaTextura.liberar();
 	SDL_DestroyRenderer(gRenderizado);
 	SDL_DestroyWindow(ventana);
 
@@ -317,7 +245,7 @@ int main(int arg, char** argv) {
 
 			bool salir = false;
 			SDL_Event e;
-			int frame = 0;
+			LTextura* actualTextura = NULL;
 			while (!salir)
 			{
 				while (SDL_PollEvent(&e) != 0)
@@ -327,20 +255,36 @@ int main(int arg, char** argv) {
 						salir = true;
 					}
 
-					for (int i = 0; i < Total_Botones; ++i)
-					{
-						gBotones[i].controlaEvento(&e);
-					}
 
 				}
 
-				SDL_SetRenderDrawColor(gRenderizado, 0xFF, 0, 0xFF, 0xFF);
+				SDL_SetRenderDrawColor(gRenderizado, 0xFF, 0xFF, 0xFF, 0xFF);
 				SDL_RenderClear(gRenderizado);
 
-				for (int i = 0; i < Total_Botones; ++i)
+				const Uint8* actualEstadoTeclado = SDL_GetKeyboardState(NULL);
+
+				if (actualEstadoTeclado[SDL_SCANCODE_UP])
 				{
-					gBotones[i].render();
+					actualTextura = &gArribaTextura;
 				}
+				else if (actualEstadoTeclado[SDL_SCANCODE_DOWN])
+				{
+					actualTextura = &gAbajoTextura;
+				}
+				else if (actualEstadoTeclado[SDL_SCANCODE_RIGHT])
+				{
+					actualTextura = &gDerechaTextura;
+				}
+				else if (actualEstadoTeclado[SDL_SCANCODE_LEFT])
+				{
+					actualTextura = &gIzquierdaTextura;
+				}
+				else
+				{
+					actualTextura = &gPresionaTextura;
+				}
+
+				actualTextura->render(0,0);
 
 				SDL_RenderPresent(gRenderizado);
 
