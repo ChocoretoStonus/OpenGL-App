@@ -1,9 +1,9 @@
 #include <sdl/SDL.h>
 #include <sdl/SDL_image.h>
 #include <sdl/SDL_ttf.h>
+#include <sdl/SDL_mixer.h>
 #include <stdio.h>
 #include <string>
-
 
 using namespace std;
 
@@ -25,6 +25,9 @@ private:
 	int mAlto;
 };
 
+
+#pragma region Variables
+
 bool inicio();
 bool cargar();
 void cerrar();
@@ -32,18 +35,20 @@ void cerrar();
 SDL_Surface* gTeclaCambioSuperficie;
 SDL_Window* ventana = NULL;
 SDL_Renderer* gRenderizado = NULL;
-LTextura gBotonSpriteTextura;
+LTextura gInicioTextura;
 
-LTextura gPresionaTextura;
-LTextura gArribaTextura;
-LTextura gAbajoTextura;
-LTextura gIzquierdaTextura;
-LTextura gDerechaTextura;
+Mix_Music* gMusica = NULL;
+Mix_Chunk* gEfecto = NULL;
+Mix_Chunk* gAlto = NULL;
+Mix_Chunk* gMedio = NULL;
+Mix_Chunk* gBajo = NULL;
 
 LTextura gFondoTextura;
 
+#pragma endregion
 
-#pragma region
+
+#pragma region Texture Metodos
 
 
 LTextura::LTextura() {
@@ -123,10 +128,14 @@ int LTextura::obtenerAlto() {
 
 #pragma endregion 
 
+
 bool inicio() {
 	bool suceso = true;
 
-	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+	//Si quieres cargar todos los elementos para evitar tanto codigo usa 
+	//SDL_INIT_EVERYTHING
+		
+	if (SDL_Init(SDL_INIT_VIDEO| SDL_INIT_AUDIO) < 0) {
 		printf("SDL no puede inicializarse: %s\n", SDL_GetError());
 	}
 	
@@ -164,10 +173,10 @@ bool inicio() {
 						IMG_GetError());
 					suceso = false;
 				}
-				if (TTF_Init() ==-1)
+				if (Mix_OpenAudio(44100,MIX_DEFAULT_FORMAT,2,2048) <0)
 				{
+					printf("no jalo el audio");
 					suceso = false;
-					printf("no jalo el ttf");
 				}
 			}
 		}
@@ -181,31 +190,42 @@ bool cargar() {
 
 	bool suceso = true;
 
-	if (!gArribaTextura.cargaArchivo("img/events/boton_arriba.png"))
+	if (!gInicioTextura.cargaArchivo("au/inicio.png"))
 	{
 		printf("Es imposible cargar la img mi capo");
 		suceso = false;
 	}
 	
-	if (!gPresionaTextura.cargaArchivo("img/events/boton_presiona.png"))
+	gMusica = Mix_LoadMUS("au/phony.wav");
+	if (gMusica ==NULL)
 	{
 		printf("Es imposible cargar la img mi capo");
 		suceso = false;
 	}
 
-	if (!gAbajoTextura.cargaArchivo("img/events/boton_abajo.png"))
+	gEfecto = Mix_LoadWAV("au/raspon.wav");
+	if (gEfecto == NULL)
 	{
 		printf("Es imposible cargar la img mi capo");
 		suceso = false;
 	}
 	
-	if (!gIzquierdaTextura.cargaArchivo("img/events/boton_izquierda.png"))
+	gAlto = Mix_LoadWAV("au/alto.wav");
+	if (gAlto == NULL)
 	{
 		printf("Es imposible cargar la img mi capo");
 		suceso = false;
 	}
 
-	if (!gDerechaTextura.cargaArchivo("img/events/boton_derecha.png"))
+	gMedio = Mix_LoadWAV("au/medio.wav");
+	if (gMedio == NULL)
+	{
+		printf("Es imposible cargar la img mi capo");
+		suceso = false;
+	}
+
+	gBajo = Mix_LoadWAV("au/bajo.wav");
+	if (gBajo == NULL)
 	{
 		printf("Es imposible cargar la img mi capo");
 		suceso = false;
@@ -216,12 +236,7 @@ bool cargar() {
 
 
 void cerrar() {
-	gBotonSpriteTextura.liberar();
-	gArribaTextura.liberar();
-	gDerechaTextura.liberar();
-	gIzquierdaTextura.liberar();
-	gAbajoTextura.liberar();
-	gPresionaTextura.liberar();
+
 	SDL_DestroyRenderer(gRenderizado);
 	SDL_DestroyWindow(ventana);
 
@@ -229,6 +244,7 @@ void cerrar() {
 	gRenderizado = NULL;
 	IMG_Quit();
 	SDL_Quit();
+	Mix_Quit();
 }
 
 
@@ -248,6 +264,7 @@ int main(int arg, char** argv) {
 
 			bool salir = false;
 			SDL_Event e;
+			int vol= 0;
 			LTextura* actualTextura = NULL;
 			while (!salir)
 			{
@@ -257,37 +274,56 @@ int main(int arg, char** argv) {
 					{
 						salir = true;
 					}
+					else if(e.type == SDL_KEYDOWN)
+					{
+						switch (e.key.keysym.sym)
+						{
+						case SDLK_1:Mix_PlayChannel(-1,gAlto,0);
+							break;
+						case SDLK_2:Mix_PlayChannel(-1, gMedio, 0);
+							break;
+						case SDLK_3:Mix_PlayChannel(-1, gBajo, 0);
+							break;
+						case SDLK_4:Mix_PlayChannel(-1, gEfecto, 0);
+							break;
+						case SDLK_5:
+							if (Mix_PlayingMusic()==0) {
+								Mix_PlayMusic(gMusica,-1);
+							}
+							else
+							{
+								if (Mix_PausedMusic()==1)
+								{
+									Mix_ResumeMusic();
+								}
+								else
+								{
+									Mix_PauseMusic();
+								}
+							}
 
+							break;
+						case SDLK_7:
+							vol+=10;
+							Mix_Volume(-1,vol);
+							break;
+						case SDLK_8:
+							vol-=10;
+							Mix_Volume(-1, vol);
+							break;
+
+						case SDLK_6:Mix_HaltMusic();
+							break;
+						}
+					}
 
 				}
 
 				SDL_SetRenderDrawColor(gRenderizado, 0xFF, 0xFF, 0xFF, 0xFF);
 				SDL_RenderClear(gRenderizado);
 
-				const Uint8* actualEstadoTeclado = SDL_GetKeyboardState(NULL);
-
-				if (actualEstadoTeclado[SDL_SCANCODE_UP])
-				{
-					actualTextura = &gArribaTextura;
-				}
-				else if (actualEstadoTeclado[SDL_SCANCODE_DOWN])
-				{
-					actualTextura = &gAbajoTextura;
-				}
-				else if (actualEstadoTeclado[SDL_SCANCODE_RIGHT])
-				{
-					actualTextura = &gDerechaTextura;
-				}
-				else if (actualEstadoTeclado[SDL_SCANCODE_LEFT])
-				{
-					actualTextura = &gIzquierdaTextura;
-				}
-				else
-				{
-					actualTextura = &gPresionaTextura;
-				}
-
-				actualTextura->render(0,0);
+				
+				gInicioTextura.render(0,0);
 
 				SDL_RenderPresent(gRenderizado);
 
