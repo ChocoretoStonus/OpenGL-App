@@ -3,11 +3,8 @@
 
 	#include <sdl/SDL.h>
 	#include <sdl/SDL_image.h>
-	#include <sdl/SDL_ttf.h>
-	#include <sdl/SDL_mixer.h>
 	#include <stdio.h>
 	#include <string>
-	#include <sstream>
 
 
 #pragma endregion
@@ -18,15 +15,14 @@
 
 	using namespace std;
 
-	const int Ancho_Pantalla = 800;
-	const int Largo_Pantalla = 600;
+	const int Ancho_Pantalla = 640;
+	const int Largo_Pantalla = 480;
 
 	class LTextura {
 	public:
 		LTextura();
 		~LTextura();
 		bool cargaArchivo(string path);
-		bool cargaRenderizadoTexto(string texuraTexto,SDL_Color textoColor);
 		void liberar();
 		void render(int x, int y, SDL_Rect* clip = NULL);
 		int obtenerAncho();
@@ -37,25 +33,22 @@
 		int mLargo;
 	};
 
+	class Punto
+	{
+	public:
+		static const int PUNTO_ANCHO = 20;
+		static const int PUNTO_LARGO = 20;
+		static const int PUNTO_VEL = 10;
+		Punto();
+		void manejarEvento(SDL_Event& e);
+		void mover();
+		void render();
 
-	class LTiempo
-{
-public:
-	LTiempo();
-	void iniciar();
-	void detener();
-	void pausar();
-	void continuar();
-	Uint32 obtenerEstado();
-	bool enInicio();
-	bool enPausa();
-private:
-	Uint32 mInicioEstado;
-	Uint32 mPausaEstado;
-	bool mPausa;
-	bool mInicio;
+	private:
+		int mPosX, mPosY;
+		int mVelX, mVelY;
+	};
 
-};
 
 
 #pragma endregion
@@ -69,15 +62,8 @@ private:
 
 	SDL_Window* ventana = NULL;
 	SDL_Renderer* gRenderizado = NULL;
-	LTextura gInicioTextura;
+	LTextura gPuntoTextura;
 
-	TTF_Font* gFuente = NULL;
-	LTextura gTiempoTextoTextura;
-	LTextura gRapidoTextoTextura;
-	LTextura gPausaRapidoTextura;
-	LTextura gInicioRapidoTextura;
-
-	LTextura gFondoTextura;
 
 #pragma endregion
 
@@ -130,34 +116,6 @@ private:
 		}
 
 
-		bool LTextura::cargaRenderizadoTexto(string textoTextura, SDL_Color textoColor) {
-
-			liberar();
-			SDL_Surface* textoSuperficie = TTF_RenderText_Solid(gFuente,textoTextura.c_str(),textoColor);
-
-
-			if (textoSuperficie==NULL)
-			{
-				printf("No jala este pedo");
-			}
-			else
-			{
-				mTextura = SDL_CreateTextureFromSurface(gRenderizado,textoSuperficie);
-				if (mTextura ==NULL)
-				{
-					printf("No jalo el pedo este");
-				}
-				else
-				{
-					mAncho = textoSuperficie->w;
-					mLargo = textoSuperficie->h;
-				}
-				SDL_FreeSurface(textoSuperficie);
-			}
-			return mTextura != NULL;
-		}
-
-
 		void LTextura::liberar() {
 			if (mTextura != NULL)
 			{
@@ -193,87 +151,69 @@ private:
 	#pragma endregion
 
 
+	#pragma region Punto
 
-	#pragma region LTiempo
-
-
-		LTiempo::LTiempo()
+		Punto::Punto()
 		{
-			mInicioEstado = 0;
-			mPausaEstado = 0;
-
-			mPausa = false;
-			mInicio = false;
-
+			mPosX = 0;
+			mPosY = 0;
+			mVelX = 0;
+			mVelY = 0;
 		}
 
 
-		void LTiempo::iniciar()
-		{
-			mInicio = true;
-			mPausa = false;
-
-			mInicioEstado = SDL_GetTicks();
-			mPausaEstado = 0;
-		}
-
-
-		void LTiempo::detener() {
-			mInicio = false;
-			mPausa = false;
-
-			mInicioEstado = 0;
-			mPausaEstado = 0;
-		}
-
-
-		void LTiempo::pausar() {
-			if (mInicio && !mPausa)
+		void Punto::manejarEvento(SDL_Event& e) {
+			if (e.type == SDL_KEYDOWN && e.key.repeat == 0)
 			{
-				mPausa = true;
-			
-				mPausaEstado = SDL_GetTicks() - mInicioEstado;
-				mInicioEstado = 0;
-			}
-		}
-
-
-		void LTiempo::continuar() {
-			if (mInicio && mPausa)
-			{
-				mPausa = false;
-
-				mInicioEstado = SDL_GetTicks() - mPausaEstado;
-				mPausaEstado = 0;
-			}
-		}
-
-
-		Uint32 LTiempo::obtenerEstado() {
-			Uint32 tiempo = 0;
-			if (mInicio)
-			{
-				if (mPausa)
+				switch (e.key.keysym.sym)
 				{
-					tiempo = mPausaEstado;
-				}
-				else
-				{
-					tiempo = SDL_GetTicks() - mInicioEstado;
+				case SDLK_UP:
+					mVelY -= PUNTO_VEL;
+					break;
+				case SDLK_DOWN:
+					mVelY += PUNTO_VEL;
+					break;
+				case SDLK_RIGHT:
+					mVelX += PUNTO_VEL;
+					break;
+				case SDLK_LEFT:
+					mVelX -= PUNTO_VEL;
+					break;
 				}
 			}
-			return tiempo;
+			else if (e.type == SDL_KEYUP && e.key.repeat == 0)
+			{
+				switch (e.key.keysym.sym)
+				{
+				case SDLK_UP: mVelY += PUNTO_VEL; break;
+				case SDLK_DOWN: mVelY -= PUNTO_VEL; break;
+				case SDLK_RIGHT: mVelX -= PUNTO_VEL; break;
+				case SDLK_LEFT: mVelX += PUNTO_VEL; break;
+				}
+			}
 		}
 
 
-		bool LTiempo::enInicio() {
-			return mInicio;
+		void Punto::mover() {
+			mPosX += mVelX;
+
+			if ((mPosX < 0) || (mPosX + PUNTO_ANCHO > Ancho_Pantalla))
+			{
+				mPosX -= mVelX;
+			}
+			mPosY += mVelY;
+
+			if ((mPosY < 0) || (mPosY + PUNTO_LARGO > Largo_Pantalla))
+			{
+				mPosY -= mVelY;
+			}
 		}
 
 
-		bool LTiempo::enPausa() {
-			return mPausa && mInicio;
+		void Punto::render() {
+			gPuntoTextura.render(mPosX,mPosY);
 		}
+
 
 	#pragma endregion
 
@@ -282,7 +222,6 @@ private:
 
 
 #pragma region Metodos Main
-
 
 
 	bool inicio() {
@@ -329,11 +268,6 @@ private:
 							IMG_GetError());
 						suceso = false;
 					}
-					if (TTF_Init() == -1)
-					{
-						printf("no jala la fuente");
-						suceso = false;
-					}
 				}
 			}
 		}
@@ -346,29 +280,9 @@ private:
 
 		bool suceso = true;
 
-		gFuente = TTF_OpenFont("fonts/ComicSans.ttf",18);
-
-		if (gFuente ==  NULL)
+		if (!gPuntoTextura.cargaArchivo("img/punto.bmp"))
 		{
-			printf("Es imposible cargar");
-			suceso = false;
-		}
-		else
-		{
-			SDL_Color textoColor = {0,0,0,255};
-
-			if (!gInicioRapidoTextura.cargaRenderizadoTexto("Presiona S para inicio/detener",textoColor))
-			{
-				printf("No se ");
-				suceso = false;
-			}
-			
-			if (!gPausaRapidoTextura.cargaRenderizadoTexto("pucha P para pausar o continuar", textoColor))
-			{
-				printf("No se ");
-				suceso = false;
-			}
-
+			printf("no sirvio la img"); suceso = false;
 		}
 	
 		return suceso;
@@ -378,13 +292,6 @@ private:
 
 	void cerrar() {
 
-		gTiempoTextoTextura.liberar();
-		gRapidoTextoTextura.liberar();
-		gInicioRapidoTextura.liberar();
-		gPausaRapidoTextura.liberar();
-
-		TTF_CloseFont(gFuente);
-		gFuente = NULL;
 
 		SDL_DestroyRenderer(gRenderizado);
 		SDL_DestroyWindow(ventana);
@@ -393,7 +300,6 @@ private:
 		gRenderizado = NULL;
 		IMG_Quit();
 		SDL_Quit();
-		TTF_Quit();
 	}
 
 
@@ -413,10 +319,7 @@ private:
 
 				bool salir = false;
 				SDL_Event e;
-				SDL_Color textoColor = {0,0,0,255};
-				LTiempo tiempo;
-				stringstream tiempoTexto;
-				LTextura* actualTextura = NULL;
+				Punto punto;
 				while (!salir)
 				{
 					while (SDL_PollEvent(&e) != 0)
@@ -425,55 +328,15 @@ private:
 						{
 							salir = true;
 						}
-						else if (e.type == SDL_KEYDOWN)
-						{
-							if (e.key.keysym.sym == SDLK_s)
-							{
-								if (tiempo.enInicio())
-								{
-									tiempo.detener();
-
-								}
-								else
-								{
-									tiempo.iniciar();
-								}
-							}
-							else if (e.key.keysym.sym == SDLK_p)
-							{
-								if (tiempo.enPausa())
-								{
-									tiempo.continuar();
-								}
-								else
-								{
-									tiempo.pausar();
-								}
-							}
-						}
-
+						punto.manejarEvento(e);
 					}
-					tiempoTexto.str("");
-					tiempoTexto<<"Tiempo en miliosegundos"<<(tiempo.obtenerEstado()/1000.f);
-
-					if (!gTiempoTextoTextura.cargaRenderizadoTexto(tiempoTexto.str().c_str(),textoColor))
-					{
-						printf("no jalo este pedo en el tiempo");
-					}
+					punto.mover();
 
 					SDL_SetRenderDrawColor(gRenderizado, 0xFF, 0xFF, 0xFF, 0xFF);
 					SDL_RenderClear(gRenderizado);
-					//gInicioTextura.render(0,0);
-					
-					gInicioRapidoTextura.render((Largo_Pantalla - gInicioRapidoTextura.obtenerLargo()) / 2,
-						0);
-					
-					gPausaRapidoTextura.render((Largo_Pantalla - gPausaRapidoTextura.obtenerLargo())/2,
-						gInicioRapidoTextura.obtenerAncho());
 
-					gTiempoTextoTextura.render((Ancho_Pantalla - gRapidoTextoTextura.obtenerAncho())/2,
-						(Largo_Pantalla - gRapidoTextoTextura.obtenerLargo())/2);
-
+					punto.render();
+					
 					SDL_RenderPresent(gRenderizado);
 
 				}
@@ -483,7 +346,6 @@ private:
 		cerrar();
 		return 0;
 	}
-
 
 
 #pragma endregion
